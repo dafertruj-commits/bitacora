@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d2a33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bitácora">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Bitácora · Boluda</title>
+<style>
+  :root{
+    --bg:#0d2a33; --bg2:#123844; --card:#16414e; --line:#1f5261;
+    --ink:#e9f0ee; --mut:#9fb8bd; --amber:#f0b04a; --amber-d:#c98f2f;
+    --ok:#57b894; --bad:#e2725b; --rad:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:0 0 88px; line-height:1.45;
+    padding-top:env(safe-area-inset-top);
+  }
+  header{
+    padding:20px 18px 14px; position:sticky; top:0; z-index:5;
+    background:linear-gradient(180deg,var(--bg) 70%,transparent);
+  }
+  h1{margin:0; font-size:20px; letter-spacing:.2px}
+  .sub{color:var(--mut); font-size:13px; margin-top:2px}
+  .countdown{
+    margin-top:14px; background:var(--bg2); border:1px solid var(--line);
+    border-radius:var(--rad); padding:12px 14px; display:flex;
+    align-items:baseline; gap:10px;
+  }
+  .countdown b{font-size:26px; color:var(--amber)}
+  .countdown span{color:var(--mut); font-size:13px}
+
+  main{padding:0 14px; max-width:640px; margin:0 auto}
+  .view{display:none} .view.active{display:block}
+
+  .card{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:var(--rad); padding:16px; margin-bottom:14px;
+  }
+  .field{margin-bottom:14px}
+  .field:last-child{margin-bottom:0}
+  label{display:block; font-size:13px; color:var(--mut); margin-bottom:6px}
+  .hint{color:#7d979c; font-weight:400}
+  input,textarea{
+    width:100%; background:var(--bg2); border:1px solid var(--line);
+    color:var(--ink); border-radius:10px; padding:11px 12px;
+    font-size:16px; font-family:inherit;
+  }
+  input:focus,textarea:focus{outline:2px solid var(--amber); border-color:transparent}
+  textarea{min-height:70px; resize:vertical}
+  .row{display:flex; gap:10px} .row .field{flex:1}
+
+  .btn{
+    width:100%; border:none; border-radius:11px; padding:14px;
+    font-size:16px; font-weight:600; color:#0d2a33; background:var(--amber);
+    cursor:pointer;
+  }
+  .btn:active{background:var(--amber-d)}
+  .btn.small{padding:11px; font-size:14px}
+  .btn.ghost{background:transparent; color:var(--amber); border:1px solid var(--amber)}
+  .actions{display:flex; gap:10px; margin-bottom:14px}
+  .actions .btn{flex:1}
+
+  /* panel */
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .stat{background:var(--card); border:1px solid var(--line); border-radius:var(--rad); padding:14px}
+  .stat .n{font-size:28px; font-weight:700}
+  .stat .l{font-size:12px; color:var(--mut); margin-top:2px}
+  .stat.warn .n{color:var(--bad)}
+  .stat.amber .n{color:var(--amber)}
+  .lead{
+    background:var(--bg2); border:1px solid var(--line); border-left:3px solid var(--amber);
+    border-radius:10px; padding:12px 14px; margin-bottom:14px; font-size:14px; color:var(--mut);
+  }
+
+  /* log */
+  .entry{background:var(--card); border:1px solid var(--line); border-radius:var(--rad); padding:14px; margin-bottom:12px}
+  .entry .top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
+  .entry .no{font-variant-numeric:tabular-nums; color:var(--amber); font-weight:700; font-size:13px}
+  .entry .date{color:var(--mut); font-size:13px}
+  .entry ul{margin:6px 0 0; padding-left:18px}
+  .entry li{margin:2px 0; font-size:14px}
+  .entry .tag{display:inline-block; font-size:11px; color:var(--mut); margin-top:8px}
+  .del{background:none; border:none; color:#7d979c; font-size:13px; cursor:pointer; padding:4px}
+  .empty{color:var(--mut); text-align:center; padding:36px 10px; font-size:14px}
+
+  /* report */
+  .report h3{margin:0 0 6px; font-size:15px}
+  .report .block{margin-bottom:16px}
+  .report ul{margin:6px 0 0; padding-left:18px}
+  .report li{margin:3px 0; font-size:14px}
+  .cfgrow{display:flex; align-items:center; gap:10px}
+  .cfgrow label{margin:0; flex:1}
+  .cfgrow input{flex:1}
+  .note{font-size:13px; color:var(--mut)}
+
+  /* tabs */
+  nav{
+    position:fixed; bottom:0; left:0; right:0; z-index:10;
+    background:var(--bg2); border-top:1px solid var(--line);
+    display:flex; padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tab{
+    flex:1; background:none; border:none; color:var(--mut);
+    padding:11px 4px 12px; font-size:11px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+  }
+  .tab svg{width:22px; height:22px; stroke:currentColor; fill:none; stroke-width:1.7}
+  .tab.active{color:var(--amber)}
+
+  #toast{
+    position:fixed; bottom:96px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:#000; color:#fff; padding:10px 18px; border-radius:22px; font-size:14px;
+    opacity:0; pointer-events:none; transition:.25s; z-index:20;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bitácora operativa</h1>
+  <div class="sub">Boluda &amp; Suárez · registro para diciembre</div>
+  <div class="countdown"><b id="cd">—</b><span id="cd-label">fija la fecha de la reunión en Informe</span></div>
+</header>
+
+<main>
+  <!-- PANEL -->
+  <section class="view active" id="panel">
+    <div class="lead">En diciembre no discutes percepciones: enseñas hechos. Registra cada jornada al terminar — 30 segundos bastan.</div>
+    <div class="grid">
+      <div class="stat"><div class="n" id="s-dias">0</div><div class="l">jornadas registradas</div></div>
+      <div class="stat" id="s-horas-box"><div class="n" id="s-horas">0</div><div class="l">horas acumuladas</div></div>
+      <div class="stat"><div class="n" id="s-auto">0</div><div class="l">tareas en autónomo</div></div>
+      <div class="stat"><div class="n" id="s-inci">0</div><div class="l">incidencias resueltas</div></div>
+      <div class="stat"><div class="n" id="s-resp">0</div><div class="l">responsabilidades nuevas</div></div>
+      <div class="stat amber"><div class="n" id="s-fibra">0</div><div class="l">registros de embobinado</div></div>
+    </div>
+    <div class="note" id="media-nota" style="margin-top:6px"></div>
+  </section>
+
+  <!-- ENTRADA -->
+  <section class="view" id="entrada">
+    <div class="card">
+      <div class="field"><label>Fecha</label><input type="date" id="f-fecha"></div>
+      <div class="row">
+        <div class="field"><label>Entrada</label><input type="time" id="f-in"></div>
+        <div class="field"><label>Salida</label><input type="time" id="f-out"></div>
+        <div class="field"><label>Pausa <span class="hint">min</span></label><input type="number" id="f-pausa" min="0" step="5" value="0"></div>
+      </div>
+      <div class="field">
+        <label>Tareas hechas en autónomo <span class="hint">— una por línea</span></label>
+        <textarea id="f-tareas" placeholder="Coordiné el atraque del buque sin supervisión&#10;Cerré el parte de operativa del turno"></textarea>
+      </div>
+      <div class="field">
+        <label>Incidencias que resolví <span class="hint">— una por línea</span></label>
+        <textarea id="f-inci" placeholder="Retraso de grúa: reorganicé el orden de descarga"></textarea>
+      </div>
+      <div class="field">
+        <label>Responsabilidad nueva del día</label>
+        <input type="text" id="f-resp" placeholder="Primera vez a cargo de un turno completo">
+      </div>
+      <div class="field">
+        <label>Embobinado de fibra <span class="hint">— tu fortaleza</span></label>
+        <textarea id="f-fibra" placeholder="Qué aportaste hoy sin curva de aprendizaje"></textarea>
+      </div>
+      <div class="field">
+        <label>Notas</label>
+        <textarea id="f-notas" placeholder="Cualquier cosa útil para la reunión"></textarea>
+      </div>
+      <button class="btn" id="save-btn">Guardar entrada</button>
+    </div>
+  </section>
+
+  <!-- BITACORA -->
+  <section class="view" id="bitacora">
+    <div id="log-list"></div>
+  </section>
+
+  <!-- INFORME -->
+  <section class="view" id="informe">
+    <div class="card report" id="report-body"></div>
+    <div class="actions">
+      <button class="btn small" id="copy-btn">Copiar informe</button>
+      <button class="btn small ghost" id="export-btn">Exportar copia (.json)</button>
+    </div>
+    <div class="card">
+      <div class="cfgrow">
+        <label for="f-meeting">Fecha de la reunión</label>
+        <input type="date" id="f-meeting">
+      </div>
+      <div class="note" style="margin-top:12px">Haz una <b>copia exportada</b> de vez en cuando. Son cuatro meses de datos: no dependas de un solo sitio.</div>
+      <div class="actions" style="margin:12px 0 0">
+        <button class="btn small ghost" id="import-btn">Importar copia (.json)</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json" hidden>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button class="tab active" data-view="panel"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Panel</button>
+  <button class="tab" data-view="entrada"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Entrada</button>
+  <button class="tab" data-view="bitacora"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Bitácora</button>
+  <button class="tab" data-view="informe"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6zM14 3v4h4"/></svg>Informe</button>
+</nav>
+
+<div id="toast"></div>
+
+<script>
+/* ---------- storage (100% local en el dispositivo) ---------- */
+const KEY = "bitacora_boluda_v1";
+let DB = { entries: [], config: { meetingDate: "" } };
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const p = JSON.parse(raw); DB.entries = p.entries||[]; DB.config = p.config||{meetingDate:""}; }
+  }catch(e){ toast("No se pudo leer el guardado"); }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(DB)); }
+  catch(e){ toast("Error al guardar"); }
+}
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const lines = t => (t||"").split("\n").map(s=>s.trim()).filter(Boolean);
+function hoursOf(e){
+  if(!e.in || !e.out) return 0;
+  const [ih,im]=e.in.split(":").map(Number), [oh,om]=e.out.split(":").map(Number);
+  let mins=(oh*60+om)-(ih*60+im);
+  if(mins<0) mins+=1440;            // turno de noche
+  mins-=(e.pausa||0);
+  return Math.max(0, mins/60);
+}
+function fmtDate(d){
+  const [y,m,day]=d.split("-");
+  return `${day}/${m}/${y}`;
+}
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1900);
+}
+
+/* ---------- entrada ---------- */
+function addEntry(){
+  const fecha=$("f-fecha").value;
+  if(!fecha){ toast("Falta la fecha"); return; }
+  const e={
+    fecha, in:$("f-in").value, out:$("f-out").value, pausa:+$("f-pausa").value||0,
+    tareas:lines($("f-tareas").value), inci:lines($("f-inci").value),
+    resp:$("f-resp").value.trim(), fibra:lines($("f-fibra").value), notas:$("f-notas").value.trim()
+  };
+  DB.entries.push(e);
+  DB.entries.sort((a,b)=>a.fecha<b.fecha?-1:1);
+  save();
+  ["f-in","f-out","f-tareas","f-inci","f-resp","f-fibra","f-notas"].forEach(id=>$(id).value="");
+  $("f-pausa").value=0;
+  toast("Entrada guardada");
+  renderAll();
+  show("bitacora");
+}
+
+/* ---------- render ---------- */
+function renderCountdown(){
+  const md=DB.config.meetingDate;
+  if(!md){ $("cd").textContent="—"; $("cd-label").textContent="fija la fecha de la reunión en Informe"; return; }
+  const diff=Math.ceil((new Date(md)-new Date().setHours(0,0,0,0))/86400000);
+  $("cd").textContent=diff>=0?diff:0;
+  $("cd-label").textContent=diff>0?`días para la reunión (${fmtDate(md)})`:(diff===0?"es hoy":"reunión pasada");
+}
+function renderPanel(){
+  const E=DB.entries, n=E.length;
+  const th=E.reduce((s,e)=>s+hoursOf(e),0);
+  const auto=E.reduce((s,e)=>s+e.tareas.length,0);
+  const inci=E.reduce((s,e)=>s+e.inci.length,0);
+  const resp=E.filter(e=>e.resp).length;
+  const fib=E.filter(e=>e.fibra.length).length;
+  $("s-dias").textContent=n;
+  $("s-horas").textContent=th.toFixed(1);
+  $("s-auto").textContent=auto;
+  $("s-inci").textContent=inci;
+  $("s-resp").textContent=resp;
+  $("s-fibra").textContent=fib;
+  const media=n?th/n:0;
+  $("s-horas-box").classList.toggle("warn", media>8);
+  $("media-nota").textContent = n ? `Media de ${media.toFixed(1)} h/jornada${media>8?" — por encima de 8 h, tu prueba de horas de más.":"."}` : "Aún no hay jornadas. Empieza por Entrada.";
+}
+function renderLog(){
+  const box=$("log-list");
+  if(!DB.entries.length){ box.innerHTML=`<div class="empty">Sin jornadas todavía.<br>Registra la primera en Entrada.</div>`; return; }
+  box.innerHTML="";
+  DB.entries.slice().reverse().forEach((e,i)=>{
+    const no=String(DB.entries.length-i).padStart(3,"0");
+    const h=hoursOf(e);
+    let html=`<div class="entry"><div class="top"><span class="no">Nº ${no}</span><span class="date">${fmtDate(e.fecha)}${h?` · ${h.toFixed(1)} h`:""}</span></div>`;
+    if(e.tareas.length) html+=`<div><b style="font-size:13px">Autónomo</b><ul>${e.tareas.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`;
+    if(e.inci.length) html+=`<div style="margin-top:6px"><b style="font-size:13px">Incidencias</b><ul>${e.inci.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`;
+    if(e.resp) html+=`<div class="tag">▸ Responsabilidad nueva: ${esc(e.resp)}</div>`;
+    if(e.fibra.length) html+=`<div class="tag" style="color:var(--amber)">▸ Embobinado: ${e.fibra.map(esc).join("; ")}</div>`;
+    if(e.notas) html+=`<div class="tag">✎ ${esc(e.notas)}</div>`;
+    html+=`<div style="text-align:right"><button class="del" data-f="${e.fecha}" data-i="${DB.entries.length-i}">Borrar</button></div></div>`;
+    box.insertAdjacentHTML("beforeend",html);
+  });
+  box.querySelectorAll(".del").forEach(b=>b.onclick=()=>{
+    if(confirm("¿Borrar esta jornada?")){
+      const idx=DB.entries.findIndex(x=>x.fecha===b.dataset.f);
+      // borra por posición real para no eliminar mal si hay fechas repetidas
+      const pos=+b.dataset.i-1;
+      DB.entries.splice(pos,1); save(); renderAll();
+    }
+  });
+}
+function renderReport(){
+  const E=DB.entries;
+  const allAuto=[...new Set(E.flatMap(e=>e.tareas))];
+  const allInci=[...new Set(E.flatMap(e=>e.inci))];
+  const allResp=[...new Set(E.filter(e=>e.resp).map(e=>e.resp))];
+  const allFib=[...new Set(E.flatMap(e=>e.fibra))];
+  const th=E.reduce((s,e)=>s+hoursOf(e),0);
+  let h=`<h3>Lo que ya hago de forma autónoma</h3>
+    <div class="note">${E.length} jornadas · ${th.toFixed(1)} h registradas</div>`;
+  const block=(title,arr)=> arr.length?`<div class="block"><b>${title}</b><ul>${arr.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"";
+  h+=`<div style="margin-top:12px">`;
+  h+=block("Tareas en autónomo", allAuto);
+  h+=block("Incidencias resueltas", allInci);
+  h+=block("Responsabilidades nuevas asumidas", allResp);
+  h+=block("Embobinado de fibra (aporte sin curva de aprendizaje)", allFib);
+  h+=`</div>`;
+  if(!E.length) h=`<div class="empty">El informe se genera solo a partir de tus entradas.</div>`;
+  $("report-body").innerHTML=h;
+}
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+/* ---------- informe: copiar / exportar / importar ---------- */
+function copyReport(){
+  const E=DB.entries;
+  const sec=(t,arr)=>arr.length?`\n${t}\n`+arr.map(x=>`  - ${x}`).join("\n"):"";
+  const txt=`LO QUE YA HAGO DE FORMA AUTÓNOMA — Boluda & Suárez\n${E.length} jornadas registradas`
+    +sec("Tareas en autónomo:",[...new Set(E.flatMap(e=>e.tareas))])
+    +sec("Incidencias resueltas:",[...new Set(E.flatMap(e=>e.inci))])
+    +sec("Responsabilidades nuevas:",[...new Set(E.filter(e=>e.resp).map(e=>e.resp))])
+    +sec("Embobinado de fibra:",[...new Set(E.flatMap(e=>e.fibra))]);
+  navigator.clipboard.writeText(txt).then(()=>toast("Informe copiado")).catch(()=>toast("No se pudo copiar"));
+}
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download=`bitacora-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  toast("Copia descargada");
+}
+function importJSON(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const p=JSON.parse(r.result);
+      if(!p.entries) throw 0;
+      if(confirm(`Importar ${p.entries.length} jornadas? Sustituye lo que tengas ahora.`)){
+        DB={entries:p.entries, config:p.config||{meetingDate:""}}; save(); renderAll();
+        $("f-meeting").value=DB.config.meetingDate||""; toast("Copia importada");
+      }
+    }catch(e){ toast("Archivo no válido"); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- nav ---------- */
+function show(v){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.view===v));
+  document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active",s.id===v));
+  if(v==="informe") renderReport();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function renderAll(){renderCountdown();renderPanel();renderLog();}
+
+/* ---------- init ---------- */
+(function(){
+  load();
+  $("f-fecha").value=new Date().toISOString().slice(0,10);
+  $("f-meeting").value=DB.config.meetingDate||"";
+  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>show(t.dataset.view));
+  $("save-btn").onclick=addEntry;
+  $("copy-btn").onclick=copyReport;
+  $("export-btn").onclick=exportJSON;
+  $("import-btn").onclick=()=>$("import-file").click();
+  $("import-file").onchange=e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); };
+  $("f-meeting").onchange=e=>{ DB.config.meetingDate=e.target.value; save(); renderCountdown(); toast("Fecha actualizada"); };
+  renderAll();
+  if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+})();
+</script>
+</body>
+</html>
